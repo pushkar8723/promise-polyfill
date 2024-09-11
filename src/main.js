@@ -25,5 +25,3 @@ p.then((data) => {
 document.querySelector('#app').innerHTML = `
   Check browser console
 `;
-
-setupCounter(document.querySelector('#counter'));
