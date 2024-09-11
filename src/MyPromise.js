@@ -1,5 +1,7 @@
 export default function MyPromise(executor) {
   let status = 'pending';
+  let successData;
+  let failureError;
   let thenCallback;
   let catchCallback;
   let finallyCallback;
@@ -10,6 +12,7 @@ export default function MyPromise(executor) {
     if (status === 'pending') {
       queueMicrotask(() => {
         status = 'fulfilled';
+        successData = data;
         if (thenCallback) {
           const value = thenCallback(data);
           if (value instanceof MyPromise) {
@@ -28,13 +31,13 @@ export default function MyPromise(executor) {
     }
   };
 
-  const reject = (data) => {
+  const reject = (error) => {
     if (status === 'pending') {
       queueMicrotask(() => {
         status = 'rejected';
-
+        failureError = error;
         if (catchCallback) {
-          const value = catchCallback(data);
+          const value = catchCallback(error);
           if (value instanceof MyPromise) {
             value.then((data) => {
               returnedResolve?.(data);
@@ -72,8 +75,18 @@ export default function MyPromise(executor) {
     thenCallback = onFulfilled;
     catchCallback = onRejected;
     const thenPromise = new MyPromise((resolve, reject) => {
-      returnedResolve = resolve;
-      returnedReject = reject
+      if (status === 'pending') {
+        returnedResolve = resolve;
+        returnedReject = reject
+      } else if (status === 'fulfilled') {
+        queueMicrotask(() => {
+          onFulfilled?.(successData);
+        });
+      } else {
+        queueMicrotask(() => {
+          onRejected?.(failureError);
+        })
+      }
     });
     return thenPromise;
   };
@@ -82,8 +95,16 @@ export default function MyPromise(executor) {
     thenCallback = (data) => data;
     catchCallback = onRejected;
     const catchPromise = new MyPromise((resolve, reject) => {
-      returnedResolve = resolve;
-      returnedReject = reject;
+      if (status === 'pending') {
+        returnedResolve = resolve;
+        returnedReject = reject
+      } else if (status === 'fulfilled') {
+        // do nothing
+      } else {
+        queueMicrotask(() => {
+          onRejected?.(failureError);
+        })
+      }
     });
     return catchPromise;
   }
@@ -91,8 +112,14 @@ export default function MyPromise(executor) {
   this.finally = (onFinally) => {
     finallyCallback = onFinally;
     const finallyPromise = new MyPromise((resolve, reject) => {
-      returnedResolve = resolve;
-      returnedReject = reject;
+      if (status === 'pending') {
+        returnedResolve = resolve;
+        returnedReject = reject
+      } else {
+        queueMicrotask(() => {
+          onFinally?.();
+        })
+      }
     });
     return finallyPromise;
   }

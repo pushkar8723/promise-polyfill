@@ -7,7 +7,7 @@ const p = new MyPromise((resolve) => {
 
 p.then((data) => {
   console.log(data);
-  return MyPromise.resolve(`${data} reject`);
+  return MyPromise.reject(`${data} reject`);
 })
   .then((data) => {
     console.log('again', data);
@@ -23,6 +23,13 @@ p.then((data) => {
   .finally(() => {
     console.log('finally 2');
   });
+
+setTimeout(() => {
+  p.then((data) => {
+    console.log('timeout promise', data)
+  });
+  console.log('timeout')
+}, 100)
 
 document.querySelector('#app').innerHTML = `
   Check browser console
