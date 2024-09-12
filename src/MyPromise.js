@@ -1,3 +1,16 @@
+/** 
+ * Cases to be handled
+ * 1. Executor should be synchronus
+ * 2. resolve and reject should be pushed to micro task queue
+ * 3. `then`, `catch` and `finally` should return a new Promise
+ * 4. Muliple `then`, `catch` and `finally` can be added to same promise
+ * 5. `then`, `catch` and `finally` can be called at a later time
+ * 6. If callbacks from `then`, `catch` and `finally` returns a promise
+ *    then the returned Promise should be chained
+ * 7. Unhandled rejection should be caught
+ * 8. `finally` should be called in both resolution and rejection of the promise
+ */
+
 export default function MyPromise(executor) {
   /** Status of the Promise */
   let status = 'pending';
@@ -16,6 +29,7 @@ export default function MyPromise(executor) {
   const resolve = (data) => {
     // Promise can be resolved only once
     if (status === 'pending') {
+      // Push to microtask queue [2]
       queueMicrotask(() => {
         // Update status and store data
         status = 'fulfilled';
@@ -33,12 +47,13 @@ export default function MyPromise(executor) {
   const reject = (error) => {
     // Promise can be rejected only once
     if (status === 'pending') {
+      // Push to microtask queue [2]
       queueMicrotask(() => {
         // Update status and store error
         status = 'rejected';
         failureError = error;
 
-        // Check for unhandled rejections
+        // Check for unhandled rejections [7]
         if (catchCallbacks.length == 0) {
           console.error("Unhandled Reject");
         }
@@ -49,7 +64,7 @@ export default function MyPromise(executor) {
     }
   };
 
-  // Call the executor
+  // Call the executor syncronously [1]
   try {
     executor(resolve, reject);
   } catch (e) {
@@ -67,7 +82,7 @@ export default function MyPromise(executor) {
     // Failure Callback, default fn whould simply trhow the error
     const failureCallback = onRejected ? onRejected : (err) => { throw err };
 
-    // Return a new Promise
+    // Return a new Promise [3]
     return new MyPromise((resolve, reject) => {
       /**
        * Common handler for both success and failure
@@ -77,7 +92,7 @@ export default function MyPromise(executor) {
           // Call the callback
           const value = callback(arg);
 
-          // Check if value is another promise
+          // Check if value is another promise [6]
           if (value instanceof MyPromise) {
             // Chain resolve and reject in case the returned value
             // is a promise
@@ -93,22 +108,22 @@ export default function MyPromise(executor) {
       }
 
       if (status === 'pending') {
-        // Push to success callbacks
+        // Push to success callbacks [4]
         thenCallbacks.push((data) => {
           handle(successCallback, data);
         });
 
-        // Push to failure callbacks
+        // Push to failure callbacks [4]
         catchCallbacks.push((error) => {
           handle(failureCallback, error);
         });
       } else if (status === 'fulfilled') {
-        // Promise is already resolved, pass the data to callback
+        // Promise is already resolved, pass the data to callback [5]
         queueMicrotask(() => {
           onFulfilled?.(successData);
         });
       } else {
-        // Promise is already rejected, pass the error to callback
+        // Promise is already rejected, pass the error to callback [5]
         queueMicrotask(() => {
           onRejected?.(failureError);
         })
@@ -129,7 +144,7 @@ export default function MyPromise(executor) {
    * Implement using then chain
    */
   this.finally = (onFinally) => {
-    // Using a promise to wrap `onFinally` in both success and failure.
+    // Using a promise to wrap `onFinally` in both success and failure. [8]
     // This way, if `onFinally` returns another proimse, that is also
     // automatically chained.
     return this.then((data) => {

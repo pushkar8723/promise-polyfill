@@ -3,7 +3,11 @@ import './styles/style.css';
 // import MyPromise from 'promise-polyfill';
 import MyPromise from './MyPromise';
 
-const p = MyPromise.resolve('Hello then');
+const p = new MyPromise((resolve, reject) => {
+  console.log("hello");
+  resolve('He he he');
+});
+console.log("hello 2")
 
 p
   // .then(() => {
@@ -23,6 +27,8 @@ p
   .finally(() => {
     console.log('finally 2');
   });
+
+p.then((data) => console.log(`hello 2 ${data}`));
 
 setTimeout(() => {
   p.then((data) => {
