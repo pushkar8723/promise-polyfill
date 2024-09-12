@@ -174,3 +174,117 @@ MyPromise.reject = (err) => {
     reject(err);
   });
 };
+
+/**
+ * Settle to first promise's result or first non-promise value.
+ */
+MyPromise.race = (arr) => {
+  return new MyPromise((resolve, reject) => {
+    [...arr].forEach(item => {
+      if (item instanceof MyPromise) {
+        item.then((data) => resolve(data), (reason) => reject(reason));
+      } else {
+        resolve(item);
+      }
+    })
+  });
+}
+
+/**
+ * Resolve with first successful promise's resolution or first non-promise value.
+ */
+MyPromise.any = (arr) => {
+  let counter = 0;
+  return new MyPromise((resolve, reject) => {
+    [...arr].forEach(item => {
+      if (item instanceof MyPromise) {
+        item.then((data) => resolve(data), () => {
+          counter++;
+          if (counter === arr.length) {
+            reject(new Error('Aggregate Error'));
+          }
+        })
+      } else {
+        resolve(item);
+      }
+    })
+  })
+}
+
+/**
+ * Wait for all promises to resolve. Return array with resolution
+ * of each promise or value.
+ * Reject if any promise fails.
+ */
+MyPromise.all = (arr) => {
+  let result = new Array(arr.length);
+  let counter = 0;
+
+  return new MyPromise((resolve, reject) => {
+    if (!arr || arr.length === 0) {
+      resolve(arr);
+    }
+
+    const updateResult = (data, index) => {
+      result[index] = data;
+      counter++;
+      if (counter === arr.length) {
+        resolve(result)
+      }
+    }
+
+    [...arr].forEach((item, index) => {
+      if (item instanceof MyPromise) {
+        item.then((data) => {
+          updateResult(data, index);
+        }, (reason) => reject(reason))
+      } else {
+        updateResult(item, index);
+      }
+    });
+  });
+}
+
+/**
+ * Resolves with `staus` and `value` or `reason` for each promise
+ * or value in the given iterable. 
+ */
+MyPromise.allSettled = (arr) => {
+  let result = new Array(arr.length);
+  let counter = 0;
+
+  return new MyPromise((resolve) => {
+    if (!arr || arr.length === 0) {
+      resolve(arr);
+    }
+
+    const updateResult = (data, index) => {
+      result[index] = data;
+      counter++;
+      if (counter === arr.length) {
+        resolve(result);
+      }
+    }
+
+    [...arr].forEach((item, index) => {
+      if (item instanceof MyPromise) {
+        item.then((value) => {
+          updateResult({
+            status: 'fulfilled',
+            value,
+          }, index);
+        }, (reason) => {
+          updateResult({
+            status: 'rejected',
+            reason
+          }, index);
+        });
+      } else {
+        updateResult({
+          status: 'fulfilled',
+          value: item,
+        }, index);
+      }
+    })
+  });
+}
