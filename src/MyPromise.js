@@ -7,25 +7,30 @@ export default function MyPromise(executor) {
   let returnedResolve;
   let returnedReject;
 
+  const handle = (callback, arg) => {
+    try {
+      const value = callback(arg);
+      if (value instanceof MyPromise) {
+        value.then((data) => {
+          returnedResolve?.(data);
+        }, (err) => {
+          returnedReject?.(err);
+        });
+      } else {
+        returnedResolve?.(value);
+      }
+    } catch (e) {
+      returnedReject?.(e);
+    }
+  }
+
   const resolve = (data) => {
     if (status === 'pending') {
       queueMicrotask(() => {
         status = 'fulfilled';
         successData = data;
-        try {
-          const value = thenCallback(data);
-          if (value instanceof MyPromise) {
-            value.then((data) => {
-              returnedResolve?.(data);
-            }, (err) => {
-              returnedReject?.(err);
-            });
-          } else {
-            returnedResolve?.(value);
-          }
-        } catch (e) {
-          returnedReject?.(e);
-        }
+      
+        handle(thenCallback, data);
       });
     }
   };
@@ -40,20 +45,7 @@ export default function MyPromise(executor) {
           console.error("Unhandled Reject");
         }
 
-        try {
-          const value = catchCallback(error);
-          if (value instanceof MyPromise) {
-            value.then((data) => {
-              returnedResolve?.(data);
-            }, (err) => {
-              returnedReject?.(err);
-            });
-          } else {
-            returnedResolve?.(value);
-          }
-        } catch (e) {
-          returnedReject?.(e);
-        }
+        handle(catchCallback, error);
       });
     }
   };
