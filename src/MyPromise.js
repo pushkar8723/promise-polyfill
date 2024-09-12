@@ -2,23 +2,8 @@ export default function MyPromise(executor) {
   let status = 'pending';
   let successData;
   let failureError;
-  let thenCallback;
-  let catchCallback;
-  let returnedResolve;
-  let returnedReject;
-
-  const handle = (callback, arg) => {
-    try {
-      const value = callback(arg);
-      if (value instanceof MyPromise) {
-        value.then(returnedResolve, returnedReject);
-      } else {
-        returnedResolve?.(value);
-      }
-    } catch (e) {
-      returnedReject?.(e);
-    }
-  }
+  const thenCallbacks = [];
+  const catchCallbacks = [];
 
   const resolve = (data) => {
     if (status === 'pending') {
@@ -26,7 +11,7 @@ export default function MyPromise(executor) {
         status = 'fulfilled';
         successData = data;
       
-        handle(thenCallback, data);
+        thenCallbacks.forEach(cb => cb(data));
       });
     }
   };
@@ -37,11 +22,11 @@ export default function MyPromise(executor) {
         status = 'rejected';
         failureError = error;
 
-        if (!returnedReject) {
+        if (catchCallbacks.length == 0) {
           console.error("Unhandled Reject");
         }
 
-        handle(catchCallback, error);
+        catchCallbacks.forEach(cb => cb(error));
       });
     }
   };
@@ -53,12 +38,30 @@ export default function MyPromise(executor) {
   }
 
   this.then = (onFulfilled, onRejected) => {
-    thenCallback = onFulfilled ? onFulfilled : (data) => data;
-    catchCallback = onRejected ? onRejected : (err) => { throw err };
+    const successCallback = onFulfilled ? onFulfilled : (data) => data;
+    const failureCallback = onRejected ? onRejected : (err) => { throw err };
     return new MyPromise((resolve, reject) => {
+      const handle = (callback, arg) => {
+        try {
+          const value = callback(arg);
+          if (value instanceof MyPromise) {
+            value.then(resolve, reject);
+          } else {
+            resolve(value);
+          }
+        } catch(e) {
+          reject(e);
+        }
+      }
+
       if (status === 'pending') {
-        returnedResolve = resolve;
-        returnedReject = reject
+        thenCallbacks.push((data) => {
+          handle(successCallback, data);
+        });
+
+        catchCallbacks.push((error) => {
+          handle(failureCallback, error);
+        });
       } else if (status === 'fulfilled') {
         queueMicrotask(() => {
           onFulfilled?.(successData);
