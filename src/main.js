@@ -19,7 +19,7 @@ p
     throw new Error('Test Error')
   })
   .then((data) => console.log(`again again ${data}`))
-  // .catch((err) => console.log(err))
+  .catch((err) => console.log(err))
   .finally(() => {
     console.log('finally 2');
   });

@@ -11,11 +11,7 @@ export default function MyPromise(executor) {
     try {
       const value = callback(arg);
       if (value instanceof MyPromise) {
-        value.then((data) => {
-          returnedResolve?.(data);
-        }, (err) => {
-          returnedReject?.(err);
-        });
+        value.then(returnedResolve, returnedReject);
       } else {
         returnedResolve?.(value);
       }
@@ -50,7 +46,11 @@ export default function MyPromise(executor) {
     }
   };
 
-  executor(resolve, reject);
+  try {
+    executor(resolve, reject);
+  } catch (e) {
+    reject(e);
+  }
 
   this.then = (onFulfilled, onRejected) => {
     thenCallback = onFulfilled ? onFulfilled : (data) => data;
