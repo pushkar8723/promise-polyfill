@@ -1,4 +1,6 @@
-/** 
+/**
+ * Custom implementation for Promise
+ * 
  * Cases to be handled
  * 1. Executor should be synchronus
  * 2. resolve and reject should be pushed to micro task queue
@@ -10,7 +12,6 @@
  * 7. Unhandled rejection should be caught
  * 8. `finally` should be called in both resolution and rejection of the promise
  */
-
 export default function MyPromise(executor) {
   /** Status of the Promise */
   let status = 'pending';
