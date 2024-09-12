@@ -1,4 +1,6 @@
 import './styles/style.css';
+// import MyPromise from './ActualPromise';
+// import MyPromise from 'promise-polyfill';
 import MyPromise from './MyPromise';
 
 const p = new MyPromise((resolve) => {
@@ -16,7 +18,7 @@ p.then((data) => {
     console.log('then', err)
   })
   .finally(() => {
-    console.log('finally 1');
+    throw new Error('Test Error')
   })
   .then((data) => console.log(`again again ${data}`))
   .catch((err) => console.log(err))

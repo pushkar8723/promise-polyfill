@@ -14,15 +14,19 @@ export default function MyPromise(executor) {
         status = 'fulfilled';
         successData = data;
         if (thenCallback) {
-          const value = thenCallback(data);
-          if (value instanceof MyPromise) {
-            value.then((data) => {
-              returnedResolve?.(data);
-            }, (err) => {
-              returnedReject?.(err);
-            });
-          } else {
-            returnedResolve?.(value);
+          try {
+            const value = thenCallback(data);
+            if (value instanceof MyPromise) {
+              value.then((data) => {
+                returnedResolve(data);
+              }, (err) => {
+                returnedReject(err);
+              });
+            } else {
+              returnedResolve(value);
+            }
+          } catch (e) {
+            returnedReject?.(e);
           }
         } else {
           finallyHandler();
@@ -37,15 +41,19 @@ export default function MyPromise(executor) {
         status = 'rejected';
         failureError = error;
         if (catchCallback) {
-          const value = catchCallback(error);
-          if (value instanceof MyPromise) {
-            value.then((data) => {
-              returnedResolve?.(data);
-            }, (err) => {
-              returnedReject?.(err);
-            });
-          } else {
-            returnedResolve?.(value);
+          try {
+            const value = catchCallback(error);
+            if (value instanceof MyPromise) {
+              value.then((data) => {
+                returnedResolve?.(data);
+              }, (err) => {
+                returnedReject?.(err);
+              });
+            } else {
+              returnedResolve?.(value);
+            }
+          } catch (e) {
+            returnedReject?.(e);
           }
         } else {
           finallyHandler();
@@ -56,15 +64,25 @@ export default function MyPromise(executor) {
 
   const finallyHandler = () => {
     if (finallyCallback) {
-      const value = finallyCallback();
-      if (value instanceof MyPromise) {
-        value.then((data) => {
-          returnedResolve?.(data);
-        }, (err) => {
-          returnedReject?.(err);
-        });
+      try {
+        const value = finallyCallback();
+        if (value instanceof MyPromise) {
+          value.then((data) => {
+            returnedResolve?.(data);
+          }, (err) => {
+            returnedReject?.(err);
+          });
+        } else {
+          returnedResolve?.(value);
+        }
+      } catch (e) {
+        returnedReject?.(e);
+      }
+    } else {
+      if (status === 'fulfilled') {
+        returnedResolve?.(successData);
       } else {
-        returnedResolve?.(value);
+        returnedReject?.(failureError);
       }
     }
   }
