@@ -3,14 +3,12 @@ import './styles/style.css';
 // import MyPromise from 'promise-polyfill';
 import MyPromise from './MyPromise';
 
-const p = new MyPromise((resolve) => {
-  resolve('Hello then');
-});
+const p = MyPromise.resolve('Hello then');
 
-p.then((data) => {
-  console.log(data);
-  return MyPromise.reject(`${data} reject`);
-})
+p
+  // .then(() => {
+  //   throw new Error(':(');
+  // })
   .then((data) => {
     console.log('again', data);
     return data;
@@ -21,7 +19,7 @@ p.then((data) => {
     throw new Error('Test Error')
   })
   .then((data) => console.log(`again again ${data}`))
-  .catch((err) => console.log(err))
+  // .catch((err) => console.log(err))
   .finally(() => {
     console.log('finally 2');
   });
