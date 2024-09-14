@@ -53,6 +53,21 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     syncFlag = true; // Synchronous part executed before timeout
   });
 
+  test('Unhandled rejection should be caught in test', async () => {
+    // Create a promise that will be rejected
+    const unhandledPromise = new Promise((_, reject) => {
+      reject(new Error('This is an unhandled rejection'));
+    });
+
+    // Wrap the promise in a try/catch to ensure Jest handles the rejection
+    try {
+      await unhandledPromise;
+    } catch (error) {
+      // Assert that the error is the expected one
+      expect(error).toEqual(new Error('This is an unhandled rejection'));
+    }
+  });
+
   test('Promise `then` chain should execute asynchronously', (done) => {
     const results: unknown[] = [];
     
@@ -118,6 +133,18 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
+  test('Promise.all handles non-promise values', async () => {
+    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new Promise((resolve) => setTimeout(() => resolve('Second'), 200));
+    const nonPromiseValue = 'Non-Promise Value';
+
+    // Use Promise.all with promises and a non-promise value
+    const results = await Promise.all([promise1, promise2, nonPromiseValue]);
+
+    // Assert that results include the non-promise value as well
+    expect(results).toEqual(['First', 'Second', nonPromiseValue]);
+  });
+
   test('any() resolves when at least one promise resolves', () => {
     const promises = [
       Promise.reject(new Error('Failed')),
@@ -142,6 +169,18 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
+  test('Promise.any handles non-promise values', async () => {
+    const promise1 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed 1')), 100));
+    const promise2 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed 2')), 200));
+    const nonPromiseValue = 'Non-Promise Value';
+
+    // Use Promise.any with promises and a non-promise value
+    const result = await Promise.any([promise1, promise2, nonPromiseValue]);
+
+    // Assert that the result is the non-promise value
+    expect(result).toBe(nonPromiseValue);
+  });
+
   test('race() resolves or rejects based on the first promise', () => {
     const promises = [
       Promise.reject(new Error('Failed')),
@@ -152,6 +191,18 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     return Promise.race(promises).catch(error => {
       expect(error?.message).toBe('Failed');
     });
+  });
+
+  test('Promise.race handles non-promise values', async () => {
+    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new Promise((resolve) => setTimeout(() => resolve('Second'), 200));
+    const nonPromiseValue = 'Non-Promise Value';
+
+    // Use Promise.race with both promises and a non-promise value
+    const result = await Promise.race([promise1, promise2, nonPromiseValue]);
+
+    // Assert that the result is the non-promise value
+    expect(result).toBe(nonPromiseValue);
   });
 
   test('allSettled() resolves with the results of all promises', () => {
@@ -168,6 +219,22 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
         { status: 'fulfilled', value: 'Three' }
       ]);
     });
+  });
+
+  test('Promise.allSettled handles non-promise values', async () => {
+    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed')), 200));
+    const nonPromiseValue = 'Non-Promise Value';
+
+    // Use Promise.allSettled with promises and a non-promise value
+    const results = await Promise.allSettled([promise1, promise2, nonPromiseValue]);
+
+    // Assert that results include the non-promise value as well
+    expect(results).toEqual([
+      { status: 'fulfilled', value: 'First' },
+      { status: 'rejected', reason: new Error('Failed') },
+      { status: 'fulfilled', value: nonPromiseValue }
+    ]);
   });
 
   test('withResolvers() creates a promise with resolvers', () => {

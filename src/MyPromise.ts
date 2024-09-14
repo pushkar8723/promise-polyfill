@@ -212,7 +212,6 @@ export default class MyPromise<T> {
             }, index);
           });
         } else {
-          console.log('hello', item, index);
           updateResult({
             status: 'fulfilled',
             value: item,
