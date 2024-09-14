@@ -5,5 +5,6 @@ export default {
   transform: {
     '^.+\\.ts?$': 'ts-jest'
   },
-  moduleFileExtensions: ['ts', 'js'],
+  collectCoverage: true,
+  coverageDirectory: 'coverage'
 };
