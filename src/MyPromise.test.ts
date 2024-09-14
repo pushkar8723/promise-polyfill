@@ -1,11 +1,11 @@
 // promise.test.js
-import Promise from './MyPromise';
+import MyPromise from './MyPromise';
 
 describe('Promise Synchronous and Asynchronous Tests', () => {
   test('Synchronous part of the Promise should run immediately', () => {
     const mockFn = jest.fn(); // A mock function to check synchronous execution
     
-    const myPromise = new Promise((resolve) => {
+    const myPromise = new MyPromise((resolve) => {
       mockFn();  // This should run synchronously
       resolve('Success');
     });
@@ -16,7 +16,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   test('Asynchronous part of the Promise runs after the synchronous code', (done) => {
     let syncFlag = false;
     
-    const myPromise = new Promise((resolve) => {
+    const myPromise = new MyPromise((resolve) => {
       resolve('Success');
     });
     
@@ -30,7 +30,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('Promise resolves after delay', () => {
-    const delayedPromise = new Promise((resolve) => {
+    const delayedPromise = new MyPromise((resolve) => {
       setTimeout(() => resolve('Delayed Success'), 100);
     });
     
@@ -41,7 +41,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     let syncFlag = false;
 
     setTimeout(() => {
-      const myPromise = Promise.resolve('Async Result');
+      const myPromise = MyPromise.resolve('Async Result');
       
       myPromise.then((result) => {
         expect(result).toBe('Async Result');
@@ -54,24 +54,25 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('Unhandled rejection should be caught in test', async () => {
+    // Spy on console.error
+    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Create a promise that will be rejected
-    const unhandledPromise = new Promise((_, reject) => {
-      reject(new Error('This is an unhandled rejection'));
-    });
+    const unhandled = MyPromise.reject(new Error('This is an unhandled rejection'));
 
-    // Wrap the promise in a try/catch to ensure Jest handles the rejection
-    try {
-      await unhandledPromise;
-    } catch (error) {
-      // Assert that the error is the expected one
-      expect(error).toEqual(new Error('This is an unhandled rejection'));
-    }
+    unhandled.finally(() => {
+      // Assert that console.log was called with the correct arguments
+      expect(logSpy).toHaveBeenCalledWith('Unhandled Reject');
+  
+      // Restore console.log to its original state
+      logSpy.mockRestore();
+    })
   });
 
   test('Promise `then` chain should execute asynchronously', (done) => {
     const results: unknown[] = [];
     
-    const myPromise = Promise.resolve('First');
+    const myPromise = MyPromise.resolve('First');
     
     myPromise
       .then((result) => {
@@ -88,7 +89,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('catch() handles rejected promises', () => {
-    const promise = Promise.reject(new Error('Failed'));
+    const promise = MyPromise.reject(new Error('Failed'));
 
     return promise.catch(error => {
       expect(error?.message).toBe('Failed');
@@ -98,48 +99,48 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   test('finally() runs regardless of promise resolution', () => {
     const mockFinally = jest.fn();
 
-    const resolvedPromise = Promise.resolve('Done');
-    const rejectedPromise = Promise.reject(new Error('Failed'));
+    const resolvedPromise = MyPromise.resolve('Done');
+    const rejectedPromise = MyPromise.reject(new Error('Failed'));
 
     const resolvedTest = resolvedPromise.finally(() => mockFinally()).then(data => expect(data).toBe('Done'));
     const rejectedTest = rejectedPromise.finally(() => mockFinally()).catch(error => expect(error?.message).toBe('Failed'));
 
-    return Promise.all([resolvedTest, rejectedTest]).then(() => {
+    return MyPromise.all([resolvedTest, rejectedTest]).then(() => {
       expect(mockFinally).toHaveBeenCalledTimes(2);
     });
   });
 
   test('all() resolves when all promises resolve', () => {
     const promises = [
-      Promise.resolve('One'),
-      Promise.resolve('Two'),
-      Promise.resolve('Three')
+      MyPromise.resolve('One'),
+      MyPromise.resolve('Two'),
+      MyPromise.resolve('Three')
     ];
 
-    return Promise.all(promises).then(results => {
+    return MyPromise.all(promises).then(results => {
       expect(results).toEqual(['One', 'Two', 'Three']);
     });
   });
 
   test('all() rejects if any promise rejects', () => {
     const promises = [
-      Promise.resolve('One'),
-      Promise.reject(new Error('Failed')),
-      Promise.resolve('Three')
+      MyPromise.resolve('One'),
+      MyPromise.reject(new Error('Failed')),
+      MyPromise.resolve('Three')
     ];
 
-    return Promise.all(promises).catch(error => {
+    return MyPromise.all(promises).catch(error => {
       expect(error?.message).toBe('Failed');
     });
   });
 
   test('Promise.all handles non-promise values', async () => {
-    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
-    const promise2 = new Promise((resolve) => setTimeout(() => resolve('Second'), 200));
+    const promise1 = new MyPromise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new MyPromise((resolve) => setTimeout(() => resolve('Second'), 200));
     const nonPromiseValue = 'Non-Promise Value';
 
     // Use Promise.all with promises and a non-promise value
-    const results = await Promise.all([promise1, promise2, nonPromiseValue]);
+    const results = await MyPromise.all([promise1, promise2, nonPromiseValue]);
 
     // Assert that results include the non-promise value as well
     expect(results).toEqual(['First', 'Second', nonPromiseValue]);
@@ -147,35 +148,35 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
 
   test('any() resolves when at least one promise resolves', () => {
     const promises = [
-      Promise.reject(new Error('Failed')),
-      Promise.resolve('Success'),
-      Promise.reject(new Error('Another Failure'))
+      MyPromise.reject(new Error('Failed')),
+      MyPromise.resolve('Success'),
+      MyPromise.reject(new Error('Another Failure'))
     ];
 
-    return Promise.any(promises).then(result => {
+    return MyPromise.any(promises).then(result => {
       expect(result).toBe('Success');
     });
   });
 
   test('any() rejects if all promises reject', () => {
     const promises = [
-      Promise.reject(new Error('Failed 1')),
-      Promise.reject(new Error('Failed 2')),
-      Promise.reject(new Error('Failed 3'))
+      MyPromise.reject(new Error('Failed 1')),
+      MyPromise.reject(new Error('Failed 2')),
+      MyPromise.reject(new Error('Failed 3'))
     ];
 
-    return Promise.any(promises).catch(error => {
+    return MyPromise.any(promises).catch(error => {
       expect(error?.message).toBe('All promises were rejected');
     });
   });
 
   test('Promise.any handles non-promise values', async () => {
-    const promise1 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed 1')), 100));
-    const promise2 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed 2')), 200));
+    const promise1 = new MyPromise((_, reject) => setTimeout(() => reject(new Error('Failed 1')), 100));
+    const promise2 = new MyPromise((_, reject) => setTimeout(() => reject(new Error('Failed 2')), 200));
     const nonPromiseValue = 'Non-Promise Value';
 
     // Use Promise.any with promises and a non-promise value
-    const result = await Promise.any([promise1, promise2, nonPromiseValue]);
+    const result = await MyPromise.any([promise1, promise2, nonPromiseValue]);
 
     // Assert that the result is the non-promise value
     expect(result).toBe(nonPromiseValue);
@@ -183,23 +184,23 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
 
   test('race() resolves or rejects based on the first promise', () => {
     const promises = [
-      Promise.reject(new Error('Failed')),
-      Promise.resolve('Winner'),
-      Promise.resolve('Loser')
+      MyPromise.reject(new Error('Failed')),
+      MyPromise.resolve('Winner'),
+      MyPromise.resolve('Loser')
     ];
 
-    return Promise.race(promises).catch(error => {
+    return MyPromise.race(promises).catch(error => {
       expect(error?.message).toBe('Failed');
     });
   });
 
   test('Promise.race handles non-promise values', async () => {
-    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
-    const promise2 = new Promise((resolve) => setTimeout(() => resolve('Second'), 200));
+    const promise1 = new MyPromise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new MyPromise((resolve) => setTimeout(() => resolve('Second'), 200));
     const nonPromiseValue = 'Non-Promise Value';
 
     // Use Promise.race with both promises and a non-promise value
-    const result = await Promise.race([promise1, promise2, nonPromiseValue]);
+    const result = await MyPromise.race([promise1, promise2, nonPromiseValue]);
 
     // Assert that the result is the non-promise value
     expect(result).toBe(nonPromiseValue);
@@ -207,12 +208,12 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
 
   test('allSettled() resolves with the results of all promises', () => {
     const promises = [
-      Promise.resolve('One'),
-      Promise.reject(new Error('Failed')),
-      Promise.resolve('Three')
+      MyPromise.resolve('One'),
+      MyPromise.reject(new Error('Failed')),
+      MyPromise.resolve('Three')
     ];
 
-    return Promise.allSettled(promises).then(results => {
+    return MyPromise.allSettled(promises).then(results => {
       expect(results).toEqual([
         { status: 'fulfilled', value: 'One' },
         { status: 'rejected', reason: new Error('Failed') },
@@ -222,12 +223,12 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('Promise.allSettled handles non-promise values', async () => {
-    const promise1 = new Promise((resolve) => setTimeout(() => resolve('First'), 100));
-    const promise2 = new Promise((_, reject) => setTimeout(() => reject(new Error('Failed')), 200));
+    const promise1 = new MyPromise((resolve) => setTimeout(() => resolve('First'), 100));
+    const promise2 = new MyPromise((_, reject) => setTimeout(() => reject(new Error('Failed')), 200));
     const nonPromiseValue = 'Non-Promise Value';
 
     // Use Promise.allSettled with promises and a non-promise value
-    const results = await Promise.allSettled([promise1, promise2, nonPromiseValue]);
+    const results = await MyPromise.allSettled([promise1, promise2, nonPromiseValue]);
 
     // Assert that results include the non-promise value as well
     expect(results).toEqual([
@@ -238,21 +239,21 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('withResolvers() creates a promise with resolvers', () => {
-    const { promise, resolve, reject } = Promise.withResolvers();
+    const { promise, resolve, reject } = MyPromise.withResolvers();
 
     // Resolve and reject using the resolvers returned
     resolve('Resolved Value');
     reject(new Error('Rejected Error'));
 
-    const resolvePromise = new Promise((res) => {
+    const resolvePromise = new MyPromise((res) => {
       setTimeout(() => res('Resolved Value'), 100);
     });
 
-    const rejectPromise = new Promise((_, rej) => {
+    const rejectPromise = new MyPromise((_, rej) => {
       setTimeout(() => rej(new Error('Rejected Error')), 100);
     });
 
-    return Promise.allSettled([promise, resolvePromise, rejectPromise]).then(results => {
+    return MyPromise.allSettled([promise, resolvePromise, rejectPromise]).then(results => {
       // Check if the promise resolved or rejected as expected
       const [promiseResult, resolveResult, rejectResult] = results;
 
@@ -268,7 +269,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('withResolvers() promise resolves correctly', () => {
-    const { promise, resolve } = Promise.withResolvers();
+    const { promise, resolve } = MyPromise.withResolvers();
 
     // Resolve the promise after a short delay
     resolve('Resolved Value');
@@ -279,7 +280,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   });
 
   test('withResolvers() promise rejects correctly', () => {
-    const { promise, reject } = Promise.withResolvers();
+    const { promise, reject } = MyPromise.withResolvers();
 
     // Reject the promise after a short delay
     reject(new Error('Rejected Value'));
@@ -292,7 +293,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   test('try() resolves when function succeeds', () => {
     const fn = () => 'Success';
 
-    return Promise.try(fn).then(result => {
+    return MyPromise.try(fn).then(result => {
       expect(result).toBe('Success');
     });
   });
@@ -300,16 +301,16 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
   test('try() rejects when function throws an error', () => {
     const fn = () => { throw new Error('Failed'); };
 
-    return Promise.try(fn).catch(error => {
+    return MyPromise.try(fn).catch(error => {
       expect(error).toEqual(expect.any(Error));
       expect(error?.message).toBe('Failed');
     });
   });
 
   test('try() handles functions that return promises', () => {
-    const promiseFn = () => Promise.resolve('Promise Success');
+    const promiseFn = () => MyPromise.resolve('Promise Success');
 
-    return Promise.try(promiseFn).then(result => {
+    return MyPromise.try(promiseFn).then(result => {
       expect(result).toBe('Promise Success');
     });
   });
