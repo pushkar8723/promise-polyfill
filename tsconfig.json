@@ -4,8 +4,9 @@
         "lib": ["es2021"],
         "outDir": "lib",
         "moduleResolution": "node",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "declaration": true
     },
-    "include": ["**/*.ts"],
+    "include": ["src/*.ts"],
     "exclude": ["node_modules", "**/*.test.*"]
 }
