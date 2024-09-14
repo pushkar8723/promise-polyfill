@@ -179,6 +179,28 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
+  test('should resolve as usual even if no callback is passed to finally', async () => {
+    const promise = MyPromise.resolve('Resolved value');
+
+    // Call finally without any arguments
+    const result = await promise.finally();
+
+    // Assert that the result is still the resolved value
+    expect(result).toBe('Resolved value');
+  });
+
+  test('should reject as usual even if no callback is passed to finally', async () => {
+    const promise = MyPromise.reject(new Error('Rejected value'));
+
+    // Call finally without any arguments
+    try {
+      await promise.finally();
+    } catch (error) {
+      // Assert that the error is still caught
+      expect(error).toEqual(new Error('Rejected value'));
+    }
+  });
+
   test('all() resolves when all promises resolve', () => {
     const promises = [
       MyPromise.resolve('One'),
