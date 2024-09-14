@@ -12,19 +12,19 @@
  * 7. Unhandled rejection should be caught
  * 8. `finally` should be called in both resolution and rejection of the promise
  */
-export default class MyPromise {
+export default class MyPromise<T> {
   /** Status of the Promise */
   private status = 'pending';
   /** Stores value of the promise if it is resolved */
-  private successData?: unknown;
+  private successData?: T;
   /** Stores error returned by the promise if it is rejected */
   private failureError?: Error;
   /** All success callbacks for the promise */
-  private thenCallbacks: ((value?: unknown) => any)[] = [];
+  private thenCallbacks: ((value?: T) => any)[] = [];
   /** All failure callbacks for the promise */
   private catchCallbacks:  ((reason?: Error) => any)[] = [];
 
-  constructor(executor: (resolve: (data?: unknown) => any, reject: (reason?: Error) => any) => void) {
+  constructor(executor: (resolve: (data?: T) => any, reject: (reason?: Error) => any) => void) {
     // Call the executor syncronously [1]
     try {
       executor(this.resolve, this.reject);
@@ -39,17 +39,24 @@ export default class MyPromise {
   /**
    * Called when Promise is resolved.
    */
-  private resolve = (data: unknown) => {
-    // Promise can be resolved only once
-    if (this.status === 'pending') {
+  private resolve = (data: T) => {
+    // Check if value is another promise [6]
+    if (data instanceof MyPromise) {
+      // Chain resolve and reject in case the returned value
+      // is a promise
+      data.then(this.resolve, this.reject);
+    } else {
       // Push to microtask queue [2]
       queueMicrotask(() => {
-        // Update status and store data
-        this.status = 'fulfilled';
-        this.successData = data;
-      
-        // Call all success callbacks
-        this.thenCallbacks.forEach(cb => cb(data));
+        // Promise can be resolved only once
+        if (this.status === 'pending') {
+          // Update status and store data
+          this.status = 'fulfilled';
+          this.successData = data;
+        
+          // Call all success callbacks
+          this.thenCallbacks.forEach(cb => cb(data));
+        }
       });
     }
   };
@@ -58,23 +65,23 @@ export default class MyPromise {
    * Called when Promise is rejected
    */
   private reject = (error?: Error) => {
-    // Promise can be rejected only once
-    if (this.status === 'pending') {
-      // Push to microtask queue [2]
-      queueMicrotask(() => {
+    // Push to microtask queue [2]
+    queueMicrotask(() => {
+      // Promise can be rejected only once
+      if (this.status === 'pending') {
         // Update status and store error
         this.status = 'rejected';
         this.failureError = error;
-
+  
         // Check for unhandled rejections [7]
         if (this.catchCallbacks.length == 0) {
           console.error("Unhandled Reject");
         }
-
+  
         // Call all failure callbacks
         this.catchCallbacks.forEach(cb => cb(error));
-      });
-    }
+      }
+    });
   };
   
   // Static Methods
@@ -82,7 +89,7 @@ export default class MyPromise {
   /**
    * Return a Promise and resolve the Promise immediately
    */
-  static resolve = (data?: unknown) => {
+  static resolve = <T>(data?: T) => {
     return new MyPromise((resolve) => {
       resolve(data);
     });
@@ -173,14 +180,14 @@ export default class MyPromise {
    * Resolves with `staus` and `value` or `reason` for each promise
    * or value in the given iterable. 
    */
-  static allSettled = (arr: Iterable<unknown>) => {
+  static allSettled = (arr: Iterable<unknown>): MyPromise<{ status: 'fulfilled' | 'rejcted', value?: unknown, reason: Error}[]> => {
     const array = [...arr];
     let result = new Array(array.length);
     let counter = 0;
 
     return new MyPromise((resolve) => {
-      if (!arr || array.length === 0) {
-        resolve(arr);
+      if (array.length === 0) {
+        resolve([]);
       }
 
       const updateResult = (data: unknown, index: number) => {
@@ -205,6 +212,7 @@ export default class MyPromise {
             }, index);
           });
         } else {
+          console.log('hello', item, index);
           updateResult({
             status: 'fulfilled',
             value: item,
@@ -214,12 +222,32 @@ export default class MyPromise {
     });
   }
 
+  /**
+   * Returns a new promise with resolvers
+   */
+  static withResolvers = () => {
+    let resolve: (value: unknown) => void;
+    let reject: (error: Error) => void;
+    const promise = new MyPromise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  /**
+   * Wrap a function in promise. Resolve with it's value or reject if it fails
+   */
+  static try = (fn: () => any) => {
+    return new MyPromise((resolve) => resolve(fn()));
+  }
+
   // Public Methods
 
   /**
    * Promise then chain
    */
-  public then = (onFulfilled?: (data?: unknown) => any, onRejected?: (reason?: Error) => any)  => {
+  public then = (onFulfilled?: (data: T) => any, onRejected?: (reason: Error) => any)  => {
     // Success Callback, default fn would simply return the data
     const successCallback = onFulfilled ? onFulfilled : (data: unknown) => data;
 
@@ -233,18 +261,8 @@ export default class MyPromise {
        */
       const handle = (callback: Function, arg: unknown) => {
         try {
-          // Call the callback
-          const value = callback(arg);
-
-          // Check if value is another promise [6]
-          if (value instanceof MyPromise) {
-            // Chain resolve and reject in case the returned value
-            // is a promise
-            value.then(resolve, reject);
-          } else {
-            // Resolve the returned promise
-            resolve(value);
-          }
+          // Resolve the returned promise with callback value
+          resolve(callback(arg));
         } catch(e) {
           // Reject the returned proimse in case of error
           reject(e);

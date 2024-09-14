@@ -1,6 +1,6 @@
 {
   "name": "@pushkar8723/promise-polyfill",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "files": [
     "lib",
