@@ -126,12 +126,15 @@ export default class MyPromise<T> {
     let counter = 0;
     let array = [...arr];
     return new MyPromise((resolve, reject) => {
+      if (array.length === 0) {
+        reject(new AggregateError([]))
+      }
       array.forEach(item => {
         if (item instanceof MyPromise) {
           item.then((data) => resolve(data), () => {
             counter++;
             if (counter === array.length) {
-              reject(new Error('All promises were rejected'));
+              reject(new AggregateError([], 'All promises were rejected'));
             }
           })
         } else {
@@ -281,12 +284,12 @@ export default class MyPromise<T> {
       } else if (this.status === 'fulfilled') {
         // Promise is already resolved, pass the data to callback [5]
         queueMicrotask(() => {
-          onFulfilled?.(this.successData);
+          resolve(onFulfilled?.(this.successData));
         });
       } else {
         // Promise is already rejected, pass the error to callback [5]
         queueMicrotask(() => {
-          onRejected?.(this.failureError);
+          resolve(onRejected?.(this.failureError));
         })
       }
     });

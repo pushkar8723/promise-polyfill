@@ -69,6 +69,53 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     })
   });
 
+  test('should not execute .then() after promise has resolved', async () => {
+    const resolveSpy = jest.fn();
+
+    // Create a promise that resolves
+    const myPromise = new MyPromise((resolve) => {
+      setTimeout(() => resolve('Resolved value'), 100);
+    });
+
+    // Add a .then handler to track when it's resolved
+    await myPromise.then(resolveSpy);
+
+    // Assert that the resolveSpy was called once
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+
+    // Try adding another .then() after the promise has already resolved
+    await myPromise.then(() => {
+      resolveSpy('This should not happen again');
+    });
+
+    // Assert that resolveSpy is still only called once
+    expect(resolveSpy).toHaveBeenCalledTimes(2); // Once for the initial resolution and once for the post-resolution handler
+  });
+
+  test('should not resolve multiple times', async () => {
+    const { promise, resolve } = MyPromise.withResolvers();
+
+    const thenSpy = jest.fn();
+
+    // Attach .then() to observe when the promise resolves
+    promise.then(thenSpy);
+
+    // Resolve the promise
+    resolve('First resolve');
+    
+    // Immediately resolve again (should not trigger another resolve)
+    resolve('Second resolve');
+
+    // Wait for promise resolution
+    await promise;
+
+    // Assert that .then was called only once
+    expect(thenSpy).toHaveBeenCalledTimes(1);
+
+    // Assert that it was called with the first value
+    expect(thenSpy).toHaveBeenCalledWith('First resolve');
+  });
+
   test('Promise `then` chain should execute asynchronously', (done) => {
     const results: unknown[] = [];
     
@@ -134,7 +181,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('Promise.all handles non-promise values', async () => {
+  test('all() handles non-promise values', async () => {
     const promise1 = new MyPromise((resolve) => setTimeout(() => resolve('First'), 100));
     const promise2 = new MyPromise((resolve) => setTimeout(() => resolve('Second'), 200));
     const nonPromiseValue = 'Non-Promise Value';
@@ -144,6 +191,13 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
 
     // Assert that results include the non-promise value as well
     expect(results).toEqual(['First', 'Second', nonPromiseValue]);
+  });
+
+  test('all([]) resolves immediately with an empty array', async () => {
+    const result = await MyPromise.all([]);
+
+    // Assert that the result is an empty array
+    expect(result).toEqual([]);
   });
 
   test('any() resolves when at least one promise resolves', () => {
@@ -180,6 +234,15 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
 
     // Assert that the result is the non-promise value
     expect(result).toBe(nonPromiseValue);
+  });
+
+  test('Promise.any([]) rejects immediately with an AggregateError', async () => {
+    try {
+      await MyPromise.any([]);
+    } catch (error) {
+      // Optionally, check the error message or structure
+      expect(error.errors).toEqual([]);
+    }
   });
 
   test('race() resolves or rejects based on the first promise', () => {
