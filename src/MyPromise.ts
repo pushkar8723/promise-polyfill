@@ -284,12 +284,12 @@ export default class MyPromise<T> {
       } else if (this.status === 'fulfilled') {
         // Promise is already resolved, pass the data to callback [5]
         queueMicrotask(() => {
-          resolve(onFulfilled?.(this.successData));
+          resolve(successCallback(this.successData));
         });
       } else {
         // Promise is already rejected, pass the error to callback [5]
         queueMicrotask(() => {
-          resolve(onRejected?.(this.failureError));
+          resolve(failureCallback(this.failureError));
         })
       }
     });
