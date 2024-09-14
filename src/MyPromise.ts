@@ -124,7 +124,7 @@ export default class MyPromise {
           item.then((data) => resolve(data), () => {
             counter++;
             if (counter === array.length) {
-              reject(new Error('Aggregate Error'));
+              reject(new Error('All promises were rejected'));
             }
           })
         } else {
