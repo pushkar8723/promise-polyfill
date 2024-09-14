@@ -135,6 +135,28 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     expect(results).toEqual([]); // Synchronous part hasn't executed yet
   });
 
+  test('should still resolve even if no arguments are passed to .then()', async () => {
+    const promise = MyPromise.resolve('Resolved value');
+
+    // No argument passed to .then()
+    const result = await promise.then();
+
+    // Assert that the result is still the resolved value
+    expect(result).toBe('Resolved value');
+  });
+
+  test('should still catch rejections even if no arguments are passed to .then()', async () => {
+    const promise = MyPromise.reject(new Error('Rejected value'));
+
+    // No argument passed to .then(), but .catch() will be added to handle rejection
+    try {
+      await promise.then();
+    } catch (error) {
+      // Assert that the error is caught
+      expect(error).toEqual(new Error('Rejected value'));
+    }
+  });
+
   test('catch() handles rejected promises', () => {
     const promise = MyPromise.reject(new Error('Failed'));
 
@@ -299,6 +321,13 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
       { status: 'rejected', reason: new Error('Failed') },
       { status: 'fulfilled', value: nonPromiseValue }
     ]);
+  });
+
+  test('Promise.allSettled([]) resolves immediately with an empty array', async () => {
+    const result = await MyPromise.allSettled([]);
+
+    // Assert that the result is an empty array
+    expect(result).toEqual([]);
   });
 
   test('withResolvers() creates a promise with resolvers', () => {
