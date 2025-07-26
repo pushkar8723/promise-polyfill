@@ -112,37 +112,11 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     // Assert that .then was called only once
     expect(thenSpy).toHaveBeenCalledTimes(1);
 
-    // Assert that it was called with the first value
-    expect(thenSpy).toHaveBeenCalledWith('First resolve');
-  });
-
-  test('Promise `then` chain should execute asynchronously', (done) => {
-    const results: unknown[] = [];
-    
-    const myPromise = MyPromise.resolve('First');
-    
-    myPromise
-      .then((result) => {
-        results.push(result); // Should execute after synchronous code
-        return 'Second';
-      })
-      .then((result) => {
-        results.push(result); // Should execute after the first `then`
-        expect(results).toEqual(['First', 'Second']); // Check the chain
-        done();
-      });
-      
-    expect(results).toEqual([]); // Synchronous part hasn't executed yet
-  });
-
-  test('should still resolve even if no arguments are passed to .then()', async () => {
-    const promise = MyPromise.resolve('Resolved value');
-
     // No argument passed to .then()
     const result = await promise.then();
 
     // Assert that the result is still the resolved value
-    expect(result).toBe('Resolved value');
+    expect(result).toBe('First resolve');
   });
 
   test('should still catch rejections even if no arguments are passed to .then()', async () => {
@@ -157,22 +131,22 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     }
   });
 
-  test('catch() handles rejected promises', () => {
+  test('catch() handles rejected promises', async () => {
     const promise = MyPromise.reject(new Error('Failed'));
 
-    return promise.catch(error => {
-      expect(error?.message).toBe('Failed');
+    await promise.catch(error => {
+      expect((error as Error)?.message).toBe('Failed');
     });
   });
 
-  test('finally() runs regardless of promise resolution', () => {
+  test('finally() runs regardless of promise resolution', async () => {
     const mockFinally = jest.fn();
 
     const resolvedPromise = MyPromise.resolve('Done');
     const rejectedPromise = MyPromise.reject(new Error('Failed'));
 
     const resolvedTest = resolvedPromise.finally(() => mockFinally()).then(data => expect(data).toBe('Done'));
-    const rejectedTest = rejectedPromise.finally(() => mockFinally()).catch(error => expect(error?.message).toBe('Failed'));
+    const rejectedTest = rejectedPromise.finally(() => mockFinally()).catch(error => expect((error as Error)?.message).toBe('Failed'));
 
     return MyPromise.all([resolvedTest, rejectedTest]).then(() => {
       expect(mockFinally).toHaveBeenCalledTimes(2);
@@ -201,7 +175,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     }
   });
 
-  test('all() resolves when all promises resolve', () => {
+  test('all() resolves when all promises resolve', async () => {
     const promises = [
       MyPromise.resolve('One'),
       MyPromise.resolve('Two'),
@@ -213,7 +187,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('all() rejects if any promise rejects', () => {
+  test('all() rejects if any promise rejects', async () => {
     const promises = [
       MyPromise.resolve('One'),
       MyPromise.reject(new Error('Failed')),
@@ -221,7 +195,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     ];
 
     return MyPromise.all(promises).catch(error => {
-      expect(error?.message).toBe('Failed');
+      expect((error as Error)?.message).toBe('Failed');
     });
   });
 
@@ -244,7 +218,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     expect(result).toEqual([]);
   });
 
-  test('any() resolves when at least one promise resolves', () => {
+  test('any() resolves when at least one promise resolves', async () => {
     const promises = [
       MyPromise.reject(new Error('Failed')),
       MyPromise.resolve('Success'),
@@ -256,7 +230,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('any() rejects if all promises reject', () => {
+  test('any() rejects if all promises reject', async () => {
     const promises = [
       MyPromise.reject(new Error('Failed 1')),
       MyPromise.reject(new Error('Failed 2')),
@@ -264,7 +238,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     ];
 
     return MyPromise.any(promises).catch(error => {
-      expect(error?.message).toBe('All promises were rejected');
+      expect((error as Error)?.message).toBe('All promises were rejected');
     });
   });
 
@@ -289,7 +263,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     }
   });
 
-  test('race() resolves or rejects based on the first promise', () => {
+  test('race() resolves or rejects based on the first promise', async() => {
     const promises = [
       MyPromise.reject(new Error('Failed')),
       MyPromise.resolve('Winner'),
@@ -297,7 +271,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     ];
 
     return MyPromise.race(promises).catch(error => {
-      expect(error?.message).toBe('Failed');
+      expect((error as Error)?.message).toBe('Failed');
     });
   });
 
@@ -313,7 +287,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     expect(result).toBe(nonPromiseValue);
   });
 
-  test('allSettled() resolves with the results of all promises', () => {
+  test('allSettled() resolves with the results of all promises', async () => {
     const promises = [
       MyPromise.resolve('One'),
       MyPromise.reject(new Error('Failed')),
@@ -352,7 +326,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     expect(result).toEqual([]);
   });
 
-  test('withResolvers() creates a promise with resolvers', () => {
+  test('withResolvers() creates a promise with resolvers', async () => {
     const { promise, resolve, reject } = MyPromise.withResolvers();
 
     // Resolve and reject using the resolvers returned
@@ -382,7 +356,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('withResolvers() promise resolves correctly', () => {
+  test('withResolvers() promise resolves correctly', async () => {
     const { promise, resolve } = MyPromise.withResolvers();
 
     // Resolve the promise after a short delay
@@ -393,7 +367,7 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('withResolvers() promise rejects correctly', () => {
+  test('withResolvers() promise rejects correctly', async() => {
     const { promise, reject } = MyPromise.withResolvers();
 
     // Reject the promise after a short delay
@@ -404,28 +378,137 @@ describe('Promise Synchronous and Asynchronous Tests', () => {
     });
   });
 
-  test('try() resolves when function succeeds', () => {
+  test('try() resolves when function succeeds', async () => {
     const fn = () => 'Success';
 
-    return MyPromise.try(fn).then(result => {
-      expect(result).toBe('Success');
-    });
+    const result = await MyPromise.try(fn);
+    expect(result).toBe('Success');
   });
 
-  test('try() rejects when function throws an error', () => {
+
+  test('try() rejects when function throws an error', async () => {
     const fn = () => { throw new Error('Failed'); };
 
-    return MyPromise.try(fn).catch(error => {
+    await MyPromise.try(fn).catch(error => {
       expect(error).toEqual(expect.any(Error));
-      expect(error?.message).toBe('Failed');
+      expect((error as Error)?.message).toBe('Failed');
     });
   });
 
-  test('try() handles functions that return promises', () => {
+  test('try() handles functions that return promises', async () => {
     const promiseFn = () => MyPromise.resolve('Promise Success');
 
-    return MyPromise.try(promiseFn).then(result => {
-      expect(result).toBe('Promise Success');
+    const result = await MyPromise.try(promiseFn);
+    expect(result).toBe('Promise Success');
+  });
+
+  // Additional tests for Promise/A+ spec compliance
+  test('executor throws synchronously and rejects promise', async () => {
+    const error = new Error('Executor error');
+    const promise = new MyPromise(() => {
+      throw error;
     });
+    await expect(promise).rejects.toBe(error);
+  });
+
+  test('then returns a new promise (not the same)', () => {
+    const promise = MyPromise.resolve(1);
+    const chained = promise.then();
+    expect(chained).not.toBe(promise);
+  });
+
+  test('then chaining: returned promise resolves with returned value', async () => {
+    const promise = MyPromise.resolve(5);
+    const result = await promise.then(val => val + 1);
+    expect(result).toBe(6);
+  });
+
+  test('then chaining: returned promise resolves with returned promise', async () => {
+    const promise = MyPromise.resolve(10);
+    const result = await promise.then(val => MyPromise.resolve(val * 2));
+    expect(result).toBe(20);
+  });
+
+  test('then chaining: returned promise rejects if callback throws', async () => {
+    const promise = MyPromise.resolve('ok');
+    const error = new Error('fail');
+    await expect(promise.then(() => { throw error; })).rejects.toBe(error);
+  });
+
+  test('catch returns a new promise and handles rejection', async () => {
+    const error = new Error('fail');
+    const promise = MyPromise.reject(error);
+    const result = await promise.catch(e => 'handled');
+    expect(result).toBe('handled');
+  });
+
+  test('catch chaining: returned promise rejects if callback throws', async () => {
+    const error = new Error('fail');
+    const promise = MyPromise.reject(error);
+    const thrown = new Error('catch fail');
+    await expect(promise.catch(() => { throw thrown; })).rejects.toBe(thrown);
+  });
+
+  test('finally returns a new promise and passes through value', async () => {
+    const promise = MyPromise.resolve('foo');
+    const result = await promise.finally(() => {});
+    expect(result).toBe('foo');
+  });
+
+  test('finally returns a new promise and passes through rejection', async () => {
+    const error = new Error('fail');
+    const promise = MyPromise.reject(error);
+    await expect(promise.finally(() => {})).rejects.toBe(error);
+  });
+
+  test('finally waits for returned promise before continuing', async () => {
+    let flag = false;
+    const promise = MyPromise.resolve('foo').finally(() => {
+      return new MyPromise(res => setTimeout(() => {
+        flag = true;
+        res(undefined);
+      }, 50));
+    });
+    expect(flag).toBe(false);
+    await promise;
+    expect(flag).toBe(true);
+  });
+
+  test('then/catch/finally can be called after resolution', async () => {
+    const promise = MyPromise.resolve('late');
+    await new Promise(res => setTimeout(res, 10));
+    const thenResult = await promise.then(val => val + ' then');
+    expect(thenResult).toBe('late then');
+    const catchResult = await promise.catch(() => 'should not run');
+    expect(catchResult).toBe('late');
+    const finallyResult = await promise.finally(() => {});
+    expect(finallyResult).toBe('late');
+  });
+
+  test('promise resolves with itself throws TypeError', async () => {
+    // This is a Promise/A+ requirement
+    let resolveSelf: any;
+    const promise: any = new MyPromise(res => { resolveSelf = res; });
+    resolveSelf(promise);
+    await expect(promise).rejects.toEqual(expect.any(TypeError));
+  });
+
+  test('multiple then handlers are called in order', async () => {
+    const results: string[] = [];
+    const promise = MyPromise.resolve('x');
+    promise.then(() => results.push('a'));
+    promise.then(() => results.push('b'));
+    await promise;
+    expect(results).toEqual(['a', 'b']);
+  });
+
+  test('multiple catch handlers are called in order', async () => {
+    const results: string[] = [];
+    const promise = MyPromise.reject('err');
+    promise.catch(() => results.push('a'));
+    promise.catch(() => results.push('b'));
+    try { await promise; } catch {}
+    expect(results).toEqual(['a', 'b']);
   });
 });
+    

@@ -46,6 +46,11 @@ export default class MyPromise<T> {
    * Called when Promise is resolved.
    */
   private resolve = (data?: T) => {
+    if ((data as unknown) === this) {
+      // If promise resolves with itself, throw TypeError [5]
+      this.reject(new TypeError('Promise cannot resolve with itself'));
+      return;
+    }
     // Check if value is another promise [6]
     if (data && typeof (data as any).then === 'function') {
       (data as any).then(this.resolve, this.reject);
@@ -100,7 +105,7 @@ export default class MyPromise<T> {
    * Return a Promise and resolve the Promise immediately
    */
   static resolve = <T>(data?: T) => {
-    return new MyPromise((resolve) => {
+    return new MyPromise<T>((resolve) => {
       resolve(data);
     });
   }
