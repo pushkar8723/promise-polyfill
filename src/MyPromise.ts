@@ -14,8 +14,8 @@
  */
 
 type ExecutorFn<T> = (
-  resolve: (data?: T) => any,
-  reject: (reason?: any) => any,
+  resolve: (data?: T) => unknown,
+  reject: (reason?: unknown) => unknown,
 ) => void;
 
 export default class MyPromise<T> {
@@ -24,11 +24,11 @@ export default class MyPromise<T> {
   /** Stores value of the promise if it is resolved */
   private successData?: T;
   /** Stores error returned by the promise if it is rejected */
-  private failureError?: any;
+  private failureError?: unknown;
   /** All success callbacks for the promise */
-  private thenCallbacks: ((value?: T) => any)[] = [];
+  private thenCallbacks: ((value?: T) => unknown)[] = [];
   /** All failure callbacks for the promise */
-  private catchCallbacks:  ((reason?: any) => any)[] = [];
+  private catchCallbacks:  ((reason?: unknown) => unknown)[] = [];
 
   constructor(executor: ExecutorFn<T>) {
     // Call the executor synchronously [1]
@@ -71,7 +71,7 @@ export default class MyPromise<T> {
   /**
    * Called when Promise is rejected
    */
-  private reject = (error?: any) => {
+  private reject = (error?: unknown) => {
     // Push to microtask queue [2]
     queueMicrotask(() => {
       // Promise can be rejected only once
@@ -108,7 +108,7 @@ export default class MyPromise<T> {
   /**
    * Return a Promise and reject the Promise immediately
    */
-  static reject = (err?: any) => {
+  static reject = (err?: unknown) => {
     return new MyPromise((_, reject) => {
       reject(err);
     });
@@ -193,7 +193,7 @@ export default class MyPromise<T> {
    * Resolves with `status` and `value` or `reason` for each promise
    * or value in the given iterable. 
    */
-  static allSettled = (arr: Iterable<unknown>): MyPromise<{ status: 'fulfilled' | 'rejected', value?: unknown, reason: any}[]> => {
+  static allSettled = (arr: Iterable<unknown>): MyPromise<{ status: 'fulfilled' | 'rejected', value?: unknown, reason: unknown}[]> => {
     const array = [...arr];
     let result = new Array(array.length);
     let counter = 0;
@@ -239,7 +239,7 @@ export default class MyPromise<T> {
    */
   static withResolvers = () => {
     let resolve: (value: unknown) => void;
-    let reject: (error: any) => void;
+    let reject: (error: unknown) => void;
     const promise = new MyPromise((res, rej) => {
       resolve = res;
       reject = rej;
@@ -250,7 +250,7 @@ export default class MyPromise<T> {
   /**
    * Wrap a function in promise. Resolve with it's value or reject if it fails
    */
-  static try = (fn: () => any) => {
+  static try = (fn: () => unknown) => {
     return new MyPromise((resolve) => resolve(fn()));
   }
 
@@ -259,12 +259,12 @@ export default class MyPromise<T> {
   /**
    * Promise then chain
    */
-  public then = (onFulfilled?: (data: T) => any, onRejected?: (reason: any) => any)  => {
+  public then = (onFulfilled?: (data: T) => unknown, onRejected?: (reason: unknown) => unknown)  => {
     // Success Callback, default fn would simply return the data
     const successCallback = onFulfilled ? onFulfilled : (data: unknown) => data;
 
     // Failure Callback, default fn would simply throw the error
-    const failureCallback = onRejected ? onRejected : (err: any) => { throw err };
+    const failureCallback = onRejected ? onRejected : (err: unknown) => { throw err };
 
     // Return a new Promise [3]
     return new MyPromise((resolve, reject) => {
@@ -309,7 +309,7 @@ export default class MyPromise<T> {
    * Promise catch chain
    * Implement using then chain
    */
-  public catch = (onRejected: (reason?: any) => any) => {
+  public catch = (onRejected: (reason?: unknown) => unknown) => {
     return this.then(undefined, onRejected);
   }
 
@@ -317,13 +317,13 @@ export default class MyPromise<T> {
    * Promise finally chain
    * Implement using then chain
    */
-  public finally = (onFinally?: () => any) => {
+  public finally = (onFinally?: () => unknown) => {
     // Using a promise to wrap `onFinally` in both success and failure. [8]
     // This way, if `onFinally` returns another promise, that is also
     // automatically chained.
     return this.then((data: unknown) => {
       return MyPromise.resolve(onFinally?.()).then(() => data);
-    }, (reason?: any) => {
+    }, (reason?: unknown) => {
       return MyPromise.resolve(onFinally?.()).then(() => { throw reason })
     })
   }
