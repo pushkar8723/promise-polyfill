@@ -264,7 +264,7 @@ export default class MyPromise<T> {
   /**
    * Promise then chain
    */
-  public then = (onFulfilled?: (data: T) => unknown, onRejected?: (reason: unknown) => unknown)  => {
+  public then = (onFulfilled?: (data: T) => unknown, onRejected?: (reason: unknown) => unknown) => {
     // Success Callback, default fn would simply return the data
     const successCallback = onFulfilled ? onFulfilled : (data: unknown) => data;
 
@@ -330,6 +330,6 @@ export default class MyPromise<T> {
       return MyPromise.resolve(onFinally?.()).then(() => data);
     }, (reason?: unknown) => {
       return MyPromise.resolve(onFinally?.()).then(() => { throw reason })
-    })
+    });
   }
 }
